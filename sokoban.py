@@ -151,7 +151,7 @@ PROBLEMS = (
     SokobanState("START", 0, None, 6, 4,  # dimensions
                  ((2, 1), (2, 2)),  # robots
                  frozenset(((1, 1), (1, 2), (4, 1), (4, 2))),  # boxes
-                 frozenset(((2, 1), (2, 2), (3, 1), (3, 2))),  # storage
+                 frozenset(((2, 1), (2, 2), (3, 1), (3, 2))),  # storages
                  frozenset()  # obstacles
                  ),
     SokobanState("START", 0, None, 5, 5,  # dimensions

@@ -23,6 +23,7 @@ def heur_alternate(state):
     # EXPLAIN YOUR HEURISTIC IN THE COMMENTS. Please leave this function (and your explanation) at the top of your solution file, to facilitate marking.
     return 0  # CHANGE THIS
 
+s = PROBLEMS[0]
 
 def heur_zero(state):
     '''Zero Heuristic can be used to make A* search perform uniform cost search'''
@@ -33,6 +34,11 @@ def heur_manhattan_distance(state):
     '''admissible sokoban puzzle heuristic: manhattan distance'''
     '''INPUT: a sokoban state'''
     '''OUTPUT: a numeric value that serves as an estimate of the distance of the state to the goal.'''
+    manhattan_dist = 0
+    for i in state.boxes:
+        dist = min(abs(i[0]-j[0]) + abs(i[1]-j[1]) for j in state.storage)
+        manhattan_dist += dist
+    return manhattan_dist
     # We want an admissible heuristic, which is an optimistic heuristic.
     # It must never overestimate the cost to get from the current state to the goal.
     # The sum of the Manhattan distances between each box that has yet to be stored and the storage point nearest to it is such a heuristic.
