@@ -63,15 +63,18 @@ def fval_function(sN, weight):
 
 # SEARCH ALGORITHMS
 def weighted_astar(initial_state, heur_fn, weight, timebound):
-    # IMPLEMENT    
+   
     '''Provides an implementation of weighted a-star, as described in the HW1 handout'''
     '''INPUT: a sokoban state that represents the start state and a timebound (number of seconds)'''
     '''OUTPUT: A goal state (if a goal is found), else False as well as a SearchStats object'''
     '''implementation of weighted astar algorithm'''
-    search_engine = 
+    search_engine = SearchEngine(str = 'custom', cc_level='full')
+    wrapped_fval_function = (lambda sN: fval_function(sN, weight))
 
+    search_engine.init_search(initial_state = initial_state, goal_fn=sokoban_goal_state, heur_fn=heur_fn, fval_function=wrapped_fval_function)
+    goal_found, stats = search_engine.search(timebound)
 
-    return None, None  # CHANGE THIS
+    return goal_found, stats  
 
 def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n), see how autograder initializes a search line 88
     # IMPLEMENT
