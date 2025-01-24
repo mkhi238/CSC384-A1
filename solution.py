@@ -46,6 +46,7 @@ def heur_manhattan_distance(state):
     # Your function should return a numeric value; this is the estimate of the distance to the goal.
 
 
+
 def fval_function(sN, weight):
     # IMPLEMENT
     """
@@ -56,18 +57,23 @@ def fval_function(sN, weight):
     @param float weight: Weight given by Anytime Weighted A star
     @rtype: float
     """
-    f_val = sN.gval + weight * sN.hval
-    return f_val #CHANGE THIS
+    return 0 #CHANGE THIS
 
 # SEARCH ALGORITHMS
 def weighted_astar(initial_state, heur_fn, weight, timebound):
-    # IMPLEMENT    
+   
     '''Provides an implementation of weighted a-star, as described in the HW1 handout'''
     '''INPUT: a sokoban state that represents the start state and a timebound (number of seconds)'''
     '''OUTPUT: A goal state (if a goal is found), else False as well as a SearchStats object'''
     '''implementation of weighted astar algorithm'''
-    search_engine = SearchEngine(str = 'custom', 'cc' = )
-    return None, None  # CHANGE THIS
+    search_engine = SearchEngine(strategy='custom',cc_level='full')
+    wrapped_fval_function = (lambda sN: fval_function(sN, weight))
+    search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function)
+    goal_found, stats = search_engine.search(timebound=timebound)
+
+    return goal_found, stats  
+
+
 
 def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n), see how autograder initializes a search line 88
     # IMPLEMENT
@@ -75,6 +81,9 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
     '''INPUT: a sokoban state that represents the start state and a timebound (number of seconds)'''
     '''OUTPUT: A goal state (if a goal is found), else False as well as a SearchStats object'''
     '''implementation of iterative astar algorithm'''
+
+
+
     return None, None #CHANGE THIS
 
 def iterative_gbfs(initial_state, heur_fn, timebound=5):  # only use h(n)
