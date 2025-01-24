@@ -4,14 +4,14 @@ from sokoban import sokoban_goal_state, PROBLEMS
 import os
 
 # Select what to test
-test_time_astar = True
-test_time_gbfs = True
-test_manhattan = True
-test_fval_function = True
-test_iterative_gbfs = True
+test_time_astar = False
+test_time_gbfs = False
+test_manhattan = False
+test_fval_function = False
+test_iterative_gbfs = False
 test_alternate = True
-test_iterative_astar = True
-test_weighted_astar = True
+test_iterative_astar = False
+test_weighted_astar = False
 
 def test_time_astar_fun():
 
@@ -111,8 +111,9 @@ def test_alternate_fun():
         final, stats = se.search(timebound)
 
         if final:
-            # final.print_path()
+            #final.print_path()
             solved += 1
+            #print(final.gval)
         else:
             unsolved.append(i)
 

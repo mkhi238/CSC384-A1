@@ -16,13 +16,58 @@ def heur_alternate(state):
     '''a better heuristic'''
     '''INPUT: a sokoban state'''
     '''OUTPUT: a numeric value that serves as an estimate of the distance of the state to the goal.'''
+    storage_list = []
+    width = state.width
+    height = state.height
+    obstacles = state.obstacles
+    wallset = wall_set(width, height, obstacles)
+    total_distance = 0
+    unassigned_goals = set(state.storage)  # To ensure unique assignment of goals
+    for i in state.boxes:
+        if i not in state.storage and corner_detection(i, wallset, width, height):
+            return float('inf')
+    
+    for box in state.boxes:
+        min_distance = float('inf')
+        closest_goal = None
+
+        for goal in unassigned_goals:
+            dist = abs(box[0] - goal[0]) + abs(box[1] - goal[1])  # Manhattan distance
+            if dist < min_distance:
+                min_distance = dist
+                closest_goal = goal
+        
+        if closest_goal:
+            unassigned_goals.remove(closest_goal)  # Assign goal uniquely
+            total_distance += min_distance
+
     # heur_manhattan_distance has flaws.
     # Write a heuristic function that improves upon heur_manhattan_distance to estimate distance between the current state and the goal.
     # Your function should return a numeric value for the estimate of the distance to the goal.
     # EXPLAIN YOUR HEURISTIC IN THE COMMENTS. Please leave this function (and your explanation) at the top of your solution file, to facilitate marking.
-    return 0  # CHANGE THIS
+    return total_distance  # CHANGE THIS
+
+def corner_detection(box, wall_set, width, height):
+    x = box[0]
+    y = box[1]
+    if ((x-1, y) in wall_set or (x+1, y) in wall_set) and ((x, y-1) in wall_set or (x, y+1) in wall_set):
+        return True
+    else:
+        return False
+
+def wall_set(width, height,obstacles):
+    walls = list(obstacles)
+    for i in range(width):
+        walls.append((i, 0))
+        walls.append((i,height-1))
+    for j in range(height):
+        walls.append((0,j))
+        walls.append((width-1,j))
+    return tuple(set(walls))
+
 
 s = PROBLEMS[0]
+print(heur_alternate(s))
 
 def heur_zero(state):
     '''Zero Heuristic can be used to make A* search perform uniform cost search'''
@@ -57,7 +102,8 @@ def fval_function(sN, weight):
     @param float weight: Weight given by Anytime Weighted A star
     @rtype: float
     """
-    return 0 #CHANGE THIS
+    fval = sN.gval + weight*sN.hval
+    return fval
 
 # SEARCH ALGORITHMS
 def weighted_astar(initial_state, heur_fn, weight, timebound):
@@ -81,10 +127,27 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
     '''INPUT: a sokoban state that represents the start state and a timebound (number of seconds)'''
     '''OUTPUT: A goal state (if a goal is found), else False as well as a SearchStats object'''
     '''implementation of iterative astar algorithm'''
+    search_engine = SearchEngine(strategy = 'custom', cc_level = 'full')
+    wrapped_fval_function = (lambda sN: fval_function(sN, weight))
+    search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function)
+    costbound = [100000000,100000000,100000000]
+    start_time = os.times()[0]
+    best = None
+    best_stats = None
 
-
-
-    return None, None #CHANGE THIS
+    while timebound > os.times()[0] - start_time and weight >= 1:
+        goal_found, stats = search_engine.search(timebound = timebound, costbound=costbound)
+        if goal_found and goal_found.gval < costbound[0]:
+            costbound = [goal_found.gval, heur_fn(goal_found), goal_found.gval + weight*heur_fn(goal_found)]
+            best = goal_found
+            best_stats = stats
+    
+    if best == None:
+        return False, None
+    
+    else:
+        return best, best_stats
+    
 
 def iterative_gbfs(initial_state, heur_fn, timebound=5):  # only use h(n)
     # IMPLEMENT
