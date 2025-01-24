@@ -12,7 +12,6 @@ from sokoban import sokoban_goal_state, SokobanState, Direction, PROBLEMS  # for
 
 # SOKOBAN HEURISTICS
 def heur_alternate(state):
-
     # IMPLEMENT
     '''a better heuristic'''
     '''INPUT: a sokoban state'''
@@ -45,7 +44,7 @@ def heur_manhattan_distance(state):
     # When calculating distances, assume there are no obstacles on the grid.
     # You should implement this heuristic function exactly, even if it is tempting to improve it.
     # Your function should return a numeric value; this is the estimate of the distance to the goal.
-    return 0  # CHANGE THIS
+
 
 def fval_function(sN, weight):
     # IMPLEMENT
@@ -57,7 +56,8 @@ def fval_function(sN, weight):
     @param float weight: Weight given by Anytime Weighted A star
     @rtype: float
     """
-    return 0 #CHANGE THIS
+    f_val = sN.gval + weight * sN.hval
+    return f_val #CHANGE THIS
 
 # SEARCH ALGORITHMS
 def weighted_astar(initial_state, heur_fn, weight, timebound):
@@ -66,6 +66,7 @@ def weighted_astar(initial_state, heur_fn, weight, timebound):
     '''INPUT: a sokoban state that represents the start state and a timebound (number of seconds)'''
     '''OUTPUT: A goal state (if a goal is found), else False as well as a SearchStats object'''
     '''implementation of weighted astar algorithm'''
+    search_engine = SearchEngine(str = 'custom', 'cc' = )
     return None, None  # CHANGE THIS
 
 def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n), see how autograder initializes a search line 88
