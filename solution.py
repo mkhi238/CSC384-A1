@@ -20,7 +20,7 @@ def heur_alternate(state):
     width = state.width
     height = state.height
     obstacles = state.obstacles
-    wallset = wall_set(width, height, obstacles)
+    wallset = wall_set(width, height)
     total_distance = 0
     unassigned_goals = set(state.storage)  # To ensure unique assignment of goals
     for i in state.boxes:
@@ -32,7 +32,7 @@ def heur_alternate(state):
         closest_goal = None
 
         for goal in unassigned_goals:
-            dist = abs(box[0] - goal[0]) + abs(box[1] - goal[1])  # Manhattan distance
+            dist = abs(box[0] - goal[0]) + abs(box[1] - goal[1])  
             if dist < min_distance:
                 min_distance = dist
                 closest_goal = goal
@@ -55,19 +55,20 @@ def corner_detection(box, wall_set, width, height):
     else:
         return False
 
-def wall_set(width, height,obstacles):
-    walls = list(obstacles)
-    for i in range(width):
-        walls.append((i, 0))
-        walls.append((i,height-1))
-    for j in range(height):
-        walls.append((0,j))
-        walls.append((width-1,j))
+def wall_set(width, height):
+    walls = []
+    for i in range(width+1):
+        walls.append((i, -1))
+        walls.append((i,height))
+    for j in range(height+1):
+        walls.append((-1,j))
+        walls.append((width,j))
     return tuple(set(walls))
 
 
-s = PROBLEMS[0]
+s = PROBLEMS[4]
 print(heur_alternate(s))
+s.print_state()
 
 def heur_zero(state):
     '''Zero Heuristic can be used to make A* search perform uniform cost search'''

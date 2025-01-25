@@ -9,8 +9,8 @@ test_time_gbfs = False
 test_manhattan = False
 test_fval_function = False
 test_iterative_gbfs = False
-test_alternate = True
-test_iterative_astar = False
+test_alternate = False
+test_iterative_astar = True
 test_weighted_astar = False
 
 def test_time_astar_fun():
@@ -113,7 +113,7 @@ def test_alternate_fun():
         if final:
             #final.print_path()
             solved += 1
-            #print(final.gval)
+            print(final.gval)
         else:
             unsolved.append(i)
 
