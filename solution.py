@@ -22,15 +22,16 @@ def heur_alternate(state):
     obstacles = state.obstacles
     wallset = wall_set(width, height, obstacles)
     total_distance = 0
+    boxes = state.boxes
     unassigned_goals = set(state.storage)  # To ensure unique assignment of goals
     for i in state.boxes:
         if i not in state.storage and corner_detection(i, wallset, width, height):
             return float('inf')
     
     for i in state.boxes:
-        if i not in state.storage and box_adjacent_deadlock(i, state.boxes, wallset, state.obstacles):
+        if i not in state.storage and boxes_stuck(i, boxes, wallset, state.storage):
             return float('inf')
-
+    
     for box in state.boxes:
         min_distance = float('inf')
         closest_goal = None
@@ -44,6 +45,7 @@ def heur_alternate(state):
         if closest_goal:
             unassigned_goals.remove(closest_goal)  # Assign goal uniquely
             total_distance += min_distance
+    total_distance += robot_box_distance(state)
 
     # heur_manhattan_distance has flaws.
     # Write a heuristic function that improves upon heur_manhattan_distance to estimate distance between the current state and the goal.
@@ -51,33 +53,33 @@ def heur_alternate(state):
     # EXPLAIN YOUR HEURISTIC IN THE COMMENTS. Please leave this function (and your explanation) at the top of your solution file, to facilitate marking.
     return total_distance  # CHANGE THIS
 
-def box_adjacent_deadlock(box, boxes, wall_set, obstacles):
 
+def boxes_stuck(box, boxes, wall_set, storage):
     x, y = box
-    # Check adjacent boxes
-    neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
+    
+    # Skip if box is already in storage
+    if box in storage:
+        return False
+    
+    left_box = (x-1, y) in boxes and (x, y-1) in wall_set and (x-1, y-1) in wall_set
+    right_box = (x+1, y) in boxes and (x, y-1) in wall_set and (x+1, y-1) in wall_set
+    top_box = (x, y-1) in boxes and (x-1, y) in wall_set and (x-1, y-1) in wall_set
+    bottom_box = (x, y+1) in boxes and (x-1, y) in wall_set and (x-1, y+1) in wall_set
 
-    for nx, ny in neighbors:
-        if (nx, ny) in boxes:
-            # If the box is adjacent to another box, check if it's stuck
-            # Check if both are against a wall or obstacle
-            if (x-1, y) in wall_set or (x+1, y) in wall_set:
-                if (nx-1, ny) in wall_set or (nx+1, ny) in wall_set:
-                    return True  # Stuck horizontally
-
-            if (x, y-1) in wall_set or (x, y+1) in wall_set:
-                if (nx, ny-1) in wall_set or (nx, ny+1) in wall_set:
-                    return True  # Stuck vertically
-            
-    return False
+    
+    return (left_box or right_box or top_box or bottom_box) 
 
 def corner_detection(box, wall_set, width, height):
     x = box[0]
     y = box[1]
-    if ((x-1, y) in wall_set or (x+1, y) in wall_set) and ((x, y-1) in wall_set or (x, y+1) in wall_set):
-        return True
-    else:
-        return False
+
+    top_left = (x-1, y) in wall_set and (x, y-1) in wall_set    
+    top_right = (x+1, y) in wall_set and (x, y-1) in wall_set   
+    bottom_left = (x-1, y) in wall_set and (x, y+1) in wall_set  
+    bottom_right = (x+1, y) in wall_set and (x, y+1) in wall_set 
+    
+    return top_left or top_right or bottom_left or bottom_right
+
 
 def wall_set(width, height, obstacles):
     walls = list(obstacles)
@@ -89,11 +91,21 @@ def wall_set(width, height, obstacles):
         walls.append((width,j))
     return tuple(set(walls))
 
+def robot_box_distance(state):
+    unplaced_boxes = [box for box in state.boxes if box not in state.storage]
+    if not unplaced_boxes:
+        return 0
 
+    min_dist = float('inf')
+    for robot in state.robots:
+        for box in unplaced_boxes:
+            dist = abs(robot[0] - box[0]) + abs(robot[1] - box[1])
+            min_dist = min(min_dist, dist)
+            
+    return min_dist
 
 s = PROBLEMS[11]
 print(heur_alternate(s))
-
 
 def heur_zero(state):
     '''Zero Heuristic can be used to make A* search perform uniform cost search'''
