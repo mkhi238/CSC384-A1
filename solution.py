@@ -20,13 +20,17 @@ def heur_alternate(state):
     width = state.width
     height = state.height
     obstacles = state.obstacles
-    wallset = wall_set(width, height)
+    wallset = wall_set(width, height, obstacles)
     total_distance = 0
     unassigned_goals = set(state.storage)  # To ensure unique assignment of goals
     for i in state.boxes:
         if i not in state.storage and corner_detection(i, wallset, width, height):
             return float('inf')
     
+    for i in state.boxes:
+        if i not in state.storage and box_adjacent_deadlock(i, state.boxes, wallset, state.obstacles):
+            return float('inf')
+
     for box in state.boxes:
         min_distance = float('inf')
         closest_goal = None
@@ -47,6 +51,26 @@ def heur_alternate(state):
     # EXPLAIN YOUR HEURISTIC IN THE COMMENTS. Please leave this function (and your explanation) at the top of your solution file, to facilitate marking.
     return total_distance  # CHANGE THIS
 
+def box_adjacent_deadlock(box, boxes, wall_set, obstacles):
+
+    x, y = box
+    # Check adjacent boxes
+    neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
+
+    for nx, ny in neighbors:
+        if (nx, ny) in boxes:
+            # If the box is adjacent to another box, check if it's stuck
+            # Check if both are against a wall or obstacle
+            if (x-1, y) in wall_set or (x+1, y) in wall_set:
+                if (nx-1, ny) in wall_set or (nx+1, ny) in wall_set:
+                    return True  # Stuck horizontally
+
+            if (x, y-1) in wall_set or (x, y+1) in wall_set:
+                if (nx, ny-1) in wall_set or (nx, ny+1) in wall_set:
+                    return True  # Stuck vertically
+            
+    return False
+
 def corner_detection(box, wall_set, width, height):
     x = box[0]
     y = box[1]
@@ -55,8 +79,8 @@ def corner_detection(box, wall_set, width, height):
     else:
         return False
 
-def wall_set(width, height):
-    walls = []
+def wall_set(width, height, obstacles):
+    walls = list(obstacles)
     for i in range(width+1):
         walls.append((i, -1))
         walls.append((i,height))
@@ -66,9 +90,10 @@ def wall_set(width, height):
     return tuple(set(walls))
 
 
-s = PROBLEMS[4]
+
+s = PROBLEMS[11]
 print(heur_alternate(s))
-s.print_state()
+
 
 def heur_zero(state):
     '''Zero Heuristic can be used to make A* search perform uniform cost search'''
@@ -131,7 +156,7 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
     search_engine = SearchEngine(strategy = 'custom', cc_level = 'full')
     wrapped_fval_function = (lambda sN: fval_function(sN, weight))
     search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function)
-    costbound = [100000000,100000000,100000000]
+    costbound = (100000000,100000000,100000000)
     start_time = os.times()[0]
     best = None
     best_stats = None
@@ -139,7 +164,7 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
     while timebound > os.times()[0] - start_time and weight >= 1:
         goal_found, stats = search_engine.search(timebound = timebound, costbound=costbound)
         if goal_found and goal_found.gval < costbound[0]:
-            costbound = [goal_found.gval, heur_fn(goal_found), goal_found.gval + weight*heur_fn(goal_found)]
+            costbound = (goal_found.gval, heur_fn(goal_found), goal_found.gval + weight*heur_fn(goal_found))
             best = goal_found
             best_stats = stats
     
@@ -156,7 +181,25 @@ def iterative_gbfs(initial_state, heur_fn, timebound=5):  # only use h(n)
     '''INPUT: a sokoban state that represents the start state and a timebound (number of seconds)'''
     '''OUTPUT: A goal state (if a goal is found), else False'''
     '''implementation of iterative gbfs algorithm'''
-    return None, None #CHANGE THIS
+    greedy_search_engine = SearchEngine(strategy = 'best_first' )
+    greedy_search_engine.init_search(initial_state,sokoban_goal_state,heur_fn)
+    costbound = (100000000, 100000000, 100000000)
+    start_time = os.times()[0]
+    best = None
+    best_stats = None
 
+    while timebound > os.times()[0] - start_time:
+        goal_found,stats = greedy_search_engine.search(timebound=timebound, costbound=costbound)
+        if goal_found and goal_found.gval < costbound[0]:
+            costbound = (goal_found.gval, costbound[1], costbound[2])
+            best = goal_found
+            best_stats = stats
+
+            
+    if best == None:
+        return False, None
+    
+    else:
+        return best, best_stats
 
 

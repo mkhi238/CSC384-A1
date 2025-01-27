@@ -4,12 +4,12 @@ from sokoban import sokoban_goal_state, PROBLEMS
 import os
 
 # Select what to test
-test_time_astar = False
-test_time_gbfs = False
+test_time_astar = True
+test_time_gbfs = True
 test_manhattan = False
 test_fval_function = False
-test_iterative_gbfs = False
-test_alternate = False
+test_iterative_gbfs = True
+test_alternate = True
 test_iterative_astar = True
 test_weighted_astar = False
 
