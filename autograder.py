@@ -5,13 +5,10 @@ import os
 
 # Select what to test
 test_time_astar = True
-<<<<<<< Updated upstream
 test_time_gbfs = True
 test_manhattan = True
-=======
 test_time_gbfs = False
 test_manhattan = False
->>>>>>> Stashed changes
 test_fval_function = False
 test_iterative_gbfs = True
 test_alternate = False
