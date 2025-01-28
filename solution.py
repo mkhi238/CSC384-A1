@@ -55,9 +55,8 @@ def heur_alternate(state):
 
 
 def boxes_stuck(box, boxes, wall_set, storage):
-    x, y = box
-    
-    # Skip if box is already in storage
+    x = box[0]
+    y = box[1]
     if box in storage:
         return False
     
@@ -104,8 +103,6 @@ def robot_box_distance(state):
             
     return min_dist
 
-s = PROBLEMS[11]
-print(heur_alternate(s))
 
 def heur_zero(state):
     '''Zero Heuristic can be used to make A* search perform uniform cost search'''
@@ -205,8 +202,7 @@ def iterative_gbfs(initial_state, heur_fn, timebound=5):  # only use h(n)
         if goal_found and goal_found.gval < costbound[0]:
             costbound = (goal_found.gval, costbound[1], costbound[2])
             best = goal_found
-            best_stats = stats
-
+            best_stats = state
             
     if best == None:
         return False, None
