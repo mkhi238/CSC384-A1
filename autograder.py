@@ -4,9 +4,9 @@ from sokoban import sokoban_goal_state, PROBLEMS
 import os
 
 # Select what to test
-test_time_astar = True
-test_time_gbfs = True
-test_manhattan = True
+test_time_astar = False
+test_time_gbfs = False
+test_manhattan = False
 test_time_gbfs = False
 test_manhattan = False
 test_fval_function = False

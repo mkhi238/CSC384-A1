@@ -16,6 +16,10 @@ def heur_alternate(state):
     '''a better heuristic'''
     '''INPUT: a sokoban state'''
     '''OUTPUT: a numeric value that serves as an estimate of the distance of the state to the goal.'''
+    # heur_manhattan_distance has flaws.
+    # Write a heuristic function that improves upon heur_manhattan_distance to estimate distance between the current state and the goal.
+    # Your function should return a numeric value for the estimate of the distance to the goal.
+    # EXPLAIN YOUR HEURISTIC IN THE COMMENTS. Please leave this function (and your explanation) at the top of your solution file, to facilitate marking.
     storage_list = []
     width = state.width
     height = state.height
@@ -31,6 +35,7 @@ def heur_alternate(state):
     for i in state.boxes:
         if i not in state.storage and boxes_stuck(i, boxes, wallset, state.storage):
             return float('inf')
+        
     
     for box in state.boxes:
         min_distance = float('inf')
@@ -65,8 +70,8 @@ def boxes_stuck(box, boxes, wall_set, storage):
     top_box = (x, y-1) in boxes and (x-1, y) in wall_set and (x-1, y-1) in wall_set
     bottom_box = (x, y+1) in boxes and (x-1, y) in wall_set and (x-1, y+1) in wall_set
 
-    
-    return (left_box or right_box or top_box or bottom_box) 
+    return (left_box or right_box or top_box or bottom_box)
+
 
 def corner_detection(box, wall_set, width, height):
     x = box[0]
@@ -198,11 +203,11 @@ def iterative_gbfs(initial_state, heur_fn, timebound=5):  # only use h(n)
     best_stats = None
 
     while timebound > os.times()[0] - start_time:
-        goal_found,stats = greedy_search_engine.search(timebound=timebound, costbound=costbound)
+        goal_found, stats = greedy_search_engine.search(timebound=timebound, costbound=costbound)
         if goal_found and goal_found.gval < costbound[0]:
             costbound = (goal_found.gval, costbound[1], costbound[2])
             best = goal_found
-            best_stats = state
+            best_stats = stats
             
     if best == None:
         return False, None
