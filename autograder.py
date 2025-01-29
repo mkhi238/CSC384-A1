@@ -10,8 +10,8 @@ test_manhattan = False
 test_time_gbfs = False
 test_manhattan = False
 test_fval_function = False
-test_iterative_gbfs = True
-test_alternate = False
+test_iterative_gbfs = False
+test_alternate = True
 test_iterative_astar = False
 test_weighted_astar = False
 
