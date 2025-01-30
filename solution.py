@@ -74,15 +74,15 @@ def heur_alternate(state):
 
 #BOX CLUSTERING PENALTY CALCULATION
 def box_clustering_penalty(boxes, storage):
-    unplaced_boxes = [box for box in boxes if box not in storage]   #Creates a list of unplaced boxes
     penalty = 0
-    #Iterate through the unplaced boxes and for any two unique boxes, if they are within 1 then assign a large penalty
-    for i in unplaced_boxes:
-        for j in unplaced_boxes:
-                if i != j:
+    for i in boxes:
+        if i not in storage:
+            for j in boxes:
+                if j != i and j not in storage:
                     if abs(i[0] - j[0]) <= 1 and abs(i[1] - j[1]) <= 1:
-                        penalty += 100000000
+                        penalty += 0.5
     return penalty
+
 
 #FUNCTION TO ENUMERATE THE LOCATION OF ALL WALLS AND OBSTACLES
 def wall_set(width, height, obstacles):
