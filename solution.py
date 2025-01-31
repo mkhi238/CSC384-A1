@@ -36,21 +36,21 @@ def heur_alternate(state):
     #First check if a box will be stuck in a corner by walls and NOT in Storage
     for i in state.boxes:
         if i not in state.storage and corner_detection(i, wallset, width, height) == True:
-                return float('inf') #if stuck (dead state), impossible to solve
+                return 1000000000 #if stuck (dead state), impossible to solve
     
     #Second check if a box will be stuck in a corner by another box and NOT in Storage
     for i in state.boxes:
         if i not in state.storage and boxes_stuck(i, boxes, wallset, state.storage) == True:
-            return float('inf')     #if stuck (dead state), impossible to solve
+            return 1000000000     #if stuck (dead state), impossible to solve
     
     #Third check if a box will be stuck in a corner by an obstacle and NOT in Storage
     for i in state.boxes:
         if i not in state.storage and obs_stuck(i, wallset, obstacles) == True:
-            return float('inf')     #if stuck (dead state), impossible to solve
+            return 1000000000    #if stuck (dead state), impossible to solve
 
     #3. CALCULATING MANHATTAN DISTANCE
     for box in state.boxes:
-        min_distance = 100000000    #Set the minimum distance to large number
+        min_distance = 1000000000    #Set the minimum distance to large number
         closest_goal = None         #Set closest goal to None
 
         for goal in unassigned_goals:
@@ -70,18 +70,6 @@ def heur_alternate(state):
     total_distance += robot_box_distance(state)    #Find distance from the robot to the box and add to total distance (just updating the heuristic value, still greedily only accounting for box to goal distance in calculation)
     total_distance += box_clustering_penalty(boxes, state.storage) #Add a cluster score to disincentive box clustering (to lower likelihood of entering infeasible states)
     return total_distance 
-
-
-#BOX CLUSTERING PENALTY CALCULATION
-def box_clustering_penalty(boxes, storage):
-    penalty = 0
-    for i in boxes:
-        if i not in storage:
-            for j in boxes:
-                if j != i and j not in storage:
-                    if abs(i[0] - j[0]) <= 1 and abs(i[1] - j[1]) <= 1:
-                        penalty += 0.5
-    return penalty
 
 
 #FUNCTION TO ENUMERATE THE LOCATION OF ALL WALLS AND OBSTACLES
@@ -172,17 +160,51 @@ def corner_detection(box, wall_set, width, height):
     
     return top_left or top_right or bottom_left or bottom_right
 
-#FUNCTION 
+#PENALTIES:
+# 1. I apply a penalty to discourage states where boxes are clustered together, which I found was helpful in escaping these states quickly
+# 2. I also add in the cost of moving the robot from its state to the box it is greedily required to go to; even thought we are greedily selecting by the box to goal state 
+#    distance, I found that adding in this distance was helpful in reaching better states as well
+
+
+#BOX CLUSTERING PENALTY CALCULATION
+
+def box_clustering_penalty(boxes, storage):
+    #Create a list of unplaced boxes
+    unplaced_boxes = []
+    for box in boxes:
+        if box not in storage:
+            unplaced_boxes.append(box)
+    
+    if len(unplaced_boxes) == 0:
+        return 0
+    
+    penalty = 0
+    #Iterate through the unplaced boxes
+    for i in unplaced_boxes:
+        for j in unplaced_boxes:
+            if j != i:
+                if abs(i[0] - j[0]) <= 1 and abs(i[1] - j[1]) <= 1: #if the boxes are within 1 unit up or down from each other (I experimented with different values [1,2,5] and found 1 to be best)
+                    penalty += 0.5  #I experimented with different penalty values [0.25, 0.5, 0.75, 1, 2, 1000000000], and found the penalty of 0.5 to be the best
+    return penalty
+
+
+#FUNCTION TO FIND ROBOT'S DISTANCE FROM BOX
 def robot_box_distance(state):
 
-    unplaced_boxes = [box for box in state.boxes if box not in state.storage] #Creates a list of unplaced boxes
+    #Create a list of unplaced boxes
+    unplaced_boxes = []
+    for box in state.boxes:
+        if box not in state.storage:
+            unplaced_boxes.append(box)
 
     if len(unplaced_boxes) == 0:
         return 0
     
+    #Iterate through robots, find the robot with the minimum distance and add it to the calculation
     min_dist = float('inf')
-    for robot in state.robots:
-        for box in unplaced_boxes:
+
+    for robot in state.robots: #For all robots
+        for box in unplaced_boxes: #For all boxes
             #Manhattan Distance for Robot To Box - identical calculation to above
             dist = abs(robot[0] - box[0]) + abs(robot[1] - box[1])
             if dist < min_dist:
