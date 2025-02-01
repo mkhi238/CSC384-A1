@@ -67,7 +67,8 @@ def heur_alternate(state):
     for i in state.boxes:
         if i not in state.storage and obs_stuck(i, wallset, obstacles) == True:
             return 1000000000    #if stuck (dead state), impossible to solve
-        
+    
+
     #3. CALCULATING MANHATTAN DISTANCE
     for box in state.boxes:
         min_distance = 1000000000    #Set the minimum distance to large number
@@ -89,6 +90,7 @@ def heur_alternate(state):
     #4. UPDATE TOTAL DISTANCE WITH ROBOT DISTANCES
     total_distance += distance_from_robot_to_box(state)    #Find distance from the robot to the box and add to total distance (just updating the heuristic value, still greedily only accounting for box to goal distance in calculation)
     return total_distance 
+
 
 
 #FUNCTION TO ENUMERATE THE LOCATION OF ALL WALLS AND OBSTACLES
