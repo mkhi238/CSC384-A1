@@ -87,7 +87,6 @@ def heur_alternate(state):
 
     #4. UPDATE TOTAL DISTANCE WITH ROBOT DISTANCES
     total_distance += distance_from_robot_to_box(state)    #Find distance from the robot to the box and add to total distance (just updating the heuristic value, still greedily only accounting for box to goal distance in calculation)
-    total_distance += avoid_box_clustering_penalty(boxes, storage) #Add a cluster score to disincentive box clustering (to lower likelihood of entering infeasible states)
     return total_distance 
 
 
@@ -319,15 +318,16 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
     '''OUTPUT: A goal state (if a goal is found), else False as well as a SearchStats object'''
     '''implementation of iterative astar algorithm'''
     search_engine = SearchEngine(strategy = 'custom', cc_level = 'full')
-    wrapped_fval_function = (lambda sN: fval_function(sN, weight))
-    search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function)
     #Inialize costbound (g(n), h(n), f(n)) with some arbitariliy high numbers, as defined in section 3.0
     costbound = (100000000,100000000,100000000) 
+    weight = 10
     start_time = os.times()[0]  #intialize start time
     best = None #initalize best solution (none so far)
     best_stats = None #initalize best stats (none so far)
     #Run iterative astar for as long as we have time and as long as the weight is greater than 1
     while timebound > os.times()[0] - start_time and weight >= 1:
+        wrapped_fval_function = (lambda sN: fval_function(sN, weight))
+        search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function)
         goal_found, stats = search_engine.search(timebound = timebound, costbound=costbound)    #Search for solution 
         #if the gval found is found and is better than our current gval, we want to set the costbounds g(n), h(n), and f(n) values to the found solution
         if goal_found and goal_found.gval < costbound[0]:
@@ -335,6 +335,8 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
             costbound = (goal_found.gval, heur_fn(goal_found), goal_found.gval + weight*heur_fn(goal_found))
             best = goal_found #Update best solution
             best_stats = stats #Update best solution stats
+        
+        weight = round(weight/1.5, 0)
     
     #If we done find a soluiton in time
     if best == None:
