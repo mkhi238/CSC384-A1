@@ -21,12 +21,31 @@ def heur_alternate(state):
     # Your function should return a numeric value for the estimate of the distance to the goal.
     # EXPLAIN YOUR HEURISTIC IN THE COMMENTS. Please leave this function (and your explanation) at the top of your solution file, to facilitate marking.
 
+    '''
+    EXPLANATION OF MY HEURISTIC:
+    The way my heurisitic works is that I try to check 3 different potential dead states first:
+    1. If a box is getting stuck in a corner while not being in a storage space
+    2. If a box is getting stuck in a corner made by another box and 2 walls
+    3. If a box is getting stuck in a corner made by an obstacle and 2 walls
+
+    To get the walls themselves, I use a helper function to enumerate the coordinates of all the walls. I then use the coordinates of the boxes and just do equivalence checks
+    to see if the coordintes of a space neigbouring a box is either a box, a dead corner, or an obstacle. If so, my heuristic returns 1000000000, which ensures that it does not 
+    make said move. 
+
+    Following this, my function will find the Manhattan distance from all remaining boxes, and select the box to move with the closest space (similar to the regular Manhattan distance
+    we made before)
+
+    Finally, my function adds in the distance to move the robot to the box, such that although the idea is to greedily select the closest box, boxes too far away will be discouraged. 
+    Further, I found that adding a penaly score to a move which creates a congested area (meaning another box is within 1 unit above or below the box) helped a lot in ensuring that 
+    strong moves were made. Both these penalites were added directly to total cost. 
+    '''
 
     #1. SETTING PARAMETERS
     width = state.width             #width of sokoban board
     height = state.height           #height of sokoban board
     obstacles = state.obstacles     #location of obstacles on board
     wallset = wall_set(width, height, obstacles)       #function that creates coordinates of all walls
+    storage = state.storage
     total_distance = 0              #total distance of box to goal
     boxes = state.boxes             #location of boxes on board
     unassigned_goals = set(state.storage)   #list of all goals that are unassigned (all goals initally)
@@ -40,7 +59,7 @@ def heur_alternate(state):
     
     #Second check if a box will be stuck in a corner by another box and NOT in Storage
     for i in state.boxes:
-        if i not in state.storage and boxes_stuck(i, boxes, wallset, state.storage) == True:
+        if i not in state.storage and boxes_stuck(i, boxes, wallset, storage) == True:
             return 1000000000     #if stuck (dead state), impossible to solve
     
     #Third check if a box will be stuck in a corner by an obstacle and NOT in Storage
@@ -67,8 +86,8 @@ def heur_alternate(state):
             total_distance += min_distance         # Add the smallest distance to the total distance required to be moved
 
     #4. UPDATE TOTAL DISTANCE WITH ROBOT DISTANCES
-    total_distance += robot_box_distance(state)    #Find distance from the robot to the box and add to total distance (just updating the heuristic value, still greedily only accounting for box to goal distance in calculation)
-    total_distance += box_clustering_penalty(boxes, state.storage) #Add a cluster score to disincentive box clustering (to lower likelihood of entering infeasible states)
+    total_distance += distance_from_robot_to_box(state)    #Find distance from the robot to the box and add to total distance (just updating the heuristic value, still greedily only accounting for box to goal distance in calculation)
+    total_distance += avoid_box_clustering_penalty(boxes, storage) #Add a cluster score to disincentive box clustering (to lower likelihood of entering infeasible states)
     return total_distance 
 
 
@@ -93,55 +112,79 @@ def wall_set(width, height, obstacles):
     return tuple(set(walls))
 
 
-#FUNCTION TO DETERMINE IF 2 BOXES ARE CREATING A DEAD STATE WITH A CORNER OR OBSTACLE
+#FUNCTION TO DETERMINE IF 2 BOXES ARE CREATING A DEAD STATE WITH ANOTHER BOX
 def boxes_stuck(box, boxes, wall_set, storage):
     x = box[0]  #x coordinate
     y = box[1]  #y coordinate
     
     #CORNER CHECKING DUE TO BOXES
 
+    #LEFT BOXES (LB); (x-1, y)
     #Left is (x-1, y), if there is a box to the left, cannot move to the left
-    #Check if there is wall directly below and to the left diagonal, if so we are in a dead state
-    left_box = (x-1, y) in boxes and (x, y-1) in wall_set and (x-1, y-1) in wall_set
 
+    #Check if there are walls directly below or above this left box; if so, we are in a dead state
+    LB_walls_above = (x-1, y) in boxes and (x, y-1) in wall_set and (x-1, y-1) in wall_set
+    LB_walls_below = (x-1, y) in boxes and (x, y+1) in wall_set and (x-1, y+1) in wall_set
+
+    #RIGHT BOXES (RB); (x+1, y)
     #Right is (x+1, y), if there is a box to the right, cannot move to the right
-    #Check if there is wall directly below and to the right diagonal, if so we are in a dead state
-    right_box = (x+1, y) in boxes and (x, y-1) in wall_set and (x+1, y-1) in wall_set
 
+    #Check if there are walls directly below or above this right box; if so, we are in a dead state
+    RB_walls_above = (x+1, y) in boxes and (x, y-1) in wall_set and (x+1, y-1) in wall_set
+    RB_walls_below = (x+1, y) in boxes and (x, y+1) in wall_set and (x+1, y+1) in wall_set
+
+    #TOP BOXES (TB); (x, y-1)
     #Top is (x, y-1), if there is a box to the top, cannot move to the top
-    #Check if there is wall to the left and to the left diagonal, if so we are in a dead state
-    top_box = (x, y-1) in boxes and (x-1, y) in wall_set and (x-1, y-1) in wall_set
 
+    #Check if there is wall to the left or right of this top box, if so we are in a dead state
+    TB_walls_left = (x, y-1) in boxes and (x-1, y) in wall_set and (x-1, y-1) in wall_set
+    TB_walls_right = (x, y-1) in boxes and (x+1, y) in wall_set and (x+1, y-1) in wall_set
+
+    #BOTTOM BOXES (BB); (x, y+1)
     #Bottom is (x, y+1), if there is a box to the bottom, cannot move to the bottom
-    #Check if there is wall to the left and to the left diagonal, if so we are in a dead state
-    bottom_box = (x, y+1) in boxes and (x-1, y) in wall_set and (x-1, y+1) in wall_set
+    #Check if there is wall to the left or right of this bottom box, if so we are in a dead state
+    BB_walls_left = (x, y+1) in boxes and (x-1, y) in wall_set and (x-1, y+1) in wall_set
+    BB_walls_right = (x, y+1) in boxes and (x+1, y) in wall_set and (x+1, y+1) in wall_set
 
-    return (left_box or right_box or top_box or bottom_box)
+    #Return true if any of these is the case, otherwise false
+    return (LB_walls_above or LB_walls_below or RB_walls_above or RB_walls_below or TB_walls_left or TB_walls_right or BB_walls_left or BB_walls_right)
 
+#FUNCTION TO DETERMINE IF A BOXES IS CREATING A DEAD STATE WITH AN OBSTACLE
 def obs_stuck(box, wall_set, obstacles):
     x = box[0]  #x coordinate
     y = box[1]  #y coordinate
     
-    #CORNER CHECKING DUE TO BOXES
+    #CORNER CHECKING DUE TO OBSTACLES
 
-    #Left is (x-1, y), if there is an obstacle to the left, cannot move to the left
-    #Check if there is wall directly below and to the left diagonal, if so we are in a dead state
-    left_box = (x-1, y) in obstacles and (x, y-1) in wall_set and (x-1, y-1) in wall_set
+    #LEFT OBSTACLES (LO); (x-1, y)
+    #Left is (x-1, y), if there is a obstacle to the left, cannot move to the left
 
-    #Right is (x+1, y), if there is an obstacle to the right, cannot move to the right
-    #Check if there is wall directly below and to the right diagonal, if so we are in a dead state
-    right_box = (x+1, y) in obstacles and (x, y-1) in wall_set and (x+1, y-1) in wall_set
+    #Check if there are walls directly below or above this left obstacle; if so, we are in a dead state
+    LO_walls_above = (x-1, y) in obstacles and (x, y-1) in wall_set and (x-1, y-1) in wall_set
+    LO_walls_below = (x-1, y) in obstacles and (x, y+1) in wall_set and (x-1, y+1) in wall_set
 
-    #Top is (x, y-1), if there is an obstacle to the top, cannot move to the top
-    #Check if there is wall to the left and to the left diagonal, if so we are in a dead state
-    top_box = (x, y-1) in obstacles and (x-1, y) in wall_set and (x-1, y-1) in wall_set
+    #RIGHT OBSTACLES (RO); (x+1, y)
+    #Right is (x+1, y), if there is a obstacle to the right, cannot move to the right
 
-    #Bottom is (x, y+1), if there is an obstacle to the bottom, cannot move to the bottom
-    #Check if there is wall to the left and to the left diagonal, if so we are in a dead state
-    bottom_box = (x, y+1) in obstacles and (x-1, y) in wall_set and (x-1, y+1) in wall_set
+    #Check if there are walls directly below or above this right obstacle; if so, we are in a dead state
+    RO_walls_above = (x+1, y) in obstacles and (x, y-1) in wall_set and (x+1, y-1) in wall_set
+    RO_walls_below = (x+1, y) in obstacles and (x, y+1) in wall_set and (x+1, y+1) in wall_set
 
-    return (left_box or right_box or top_box or bottom_box)
+    #TOP OBSTACLES (TO); (x, y-1)
+    #Top is (x, y-1), if there is a obstacle to the top, cannot move to the top
 
+    #Check if there is wall to the left or right of this top obstacle, if so we are in a dead state
+    TO_walls_left = (x, y-1) in obstacles and (x-1, y) in wall_set and (x-1, y-1) in wall_set
+    TO_walls_right = (x, y-1) in obstacles and (x+1, y) in wall_set and (x+1, y-1) in wall_set
+
+    #BOTTOM OBSTACLES (BO); (x, y+1)
+    #Bottom is (x, y+1), if there is a box to the bottom, cannot move to the bottom
+    #Check if there is wall to the left or right of this bottom obstacle, if so we are in a dead state
+    BO_walls_left = (x, y+1) in obstacles and (x-1, y) in wall_set and (x-1, y+1) in wall_set
+    BO_walls_right = (x, y+1) in obstacles and (x+1, y) in wall_set and (x+1, y+1) in wall_set
+
+    #Return true if any of these is the case, otherwise false
+    return (LO_walls_above or LO_walls_below or RO_walls_above or RO_walls_below or TO_walls_left or TO_walls_right or BO_walls_left or BO_walls_right)
 
 #FUNCTION TO DETECT IF A BOX IS NEAR A CORNER (CREATED BY WALLS)
 def corner_detection(box, wall_set, width, height):
@@ -149,32 +192,34 @@ def corner_detection(box, wall_set, width, height):
     x = box[0]
     y = box[1]
 
+    #im using this function for the general case we are near a corner, hence why it it simpler and also only has 4 outcomes
+
     #Similar to above checks, but simple check to see if there the box is generally near a corner to the top left
-    top_left = (x-1, y) in wall_set and (x, y-1) in wall_set    
+    top_left_corner = (x-1, y) in wall_set and (x, y-1) in wall_set and (x-1, y-1) in wall_set
     #Similar to above checks, but simple check to see if there the box is generally near a corner to the top right
-    top_right = (x+1, y) in wall_set and (x, y-1) in wall_set   
+    top_right_corner = (x+1, y) in wall_set and (x, y-1) in wall_set  and (x+1, y-1) in wall_set 
     #Similar to above checks, but simple check to see if there the box is generally near a corner to the bottom left
-    bottom_left = (x-1, y) in wall_set and (x, y+1) in wall_set  
+    bottom_left_corner = (x-1, y) in wall_set and (x, y+1) in wall_set  and (x-1, y+1) in wall_set
     #Similar to above checks, but simple check to see if there the box is generally near a corner to the bottom right
-    bottom_right = (x+1, y) in wall_set and (x, y+1) in wall_set 
+    bottom_right_corner = (x+1, y) in wall_set and (x, y+1) in wall_set and (x+1, y+1) in wall_set
     
-    return top_left or top_right or bottom_left or bottom_right
+    #Return true if any of these is the case, otherwise false
+    return top_left_corner or top_right_corner or bottom_left_corner or bottom_right_corner
 
 #PENALTIES:
 # 1. I apply a penalty to discourage states where boxes are clustered together, which I found was helpful in escaping these states quickly
 # 2. I also add in the cost of moving the robot from its state to the box it is greedily required to go to; even thought we are greedily selecting by the box to goal state 
 #    distance, I found that adding in this distance was helpful in reaching better states as well
 
-
 #BOX CLUSTERING PENALTY CALCULATION
-
-def box_clustering_penalty(boxes, storage):
+def avoid_box_clustering_penalty(boxes, storage):
     #Create a list of unplaced boxes
     unplaced_boxes = []
     for box in boxes:
         if box not in storage:
             unplaced_boxes.append(box)
-    
+
+    #If there is no unplaced boxes for whatever reason
     if len(unplaced_boxes) == 0:
         return 0
     
@@ -184,12 +229,12 @@ def box_clustering_penalty(boxes, storage):
         for j in unplaced_boxes:
             if j != i:
                 if abs(i[0] - j[0]) <= 1 and abs(i[1] - j[1]) <= 1: #if the boxes are within 1 unit up or down from each other (I experimented with different values [1,2,5] and found 1 to be best)
-                    penalty += 0.5  #I experimented with different penalty values [0.25, 0.5, 0.75, 1, 2, 1000000000], and found the penalty of 0.5 to be the best
+                    penalty += 0.5  #I experimented with different penalty values as well [0.25, 0.5, 0.75, 1, 2, 1000000000], and found the penalty of 0.5 to be the best
     return penalty
 
 
 #FUNCTION TO FIND ROBOT'S DISTANCE FROM BOX
-def robot_box_distance(state):
+def distance_from_robot_to_box(state):
 
     #Create a list of unplaced boxes
     unplaced_boxes = []
@@ -197,11 +242,12 @@ def robot_box_distance(state):
         if box not in state.storage:
             unplaced_boxes.append(box)
 
+    #If there is no unplaced boxes for whatever reason
     if len(unplaced_boxes) == 0:
         return 0
     
     #Iterate through robots, find the robot with the minimum distance and add it to the calculation
-    min_dist = float('inf')
+    min_dist = 1000000000
 
     for robot in state.robots: #For all robots
         for box in unplaced_boxes: #For all boxes
@@ -213,6 +259,13 @@ def robot_box_distance(state):
 
 
 def heur_zero(state):
+    # We want an admissible heuristic, which is an optimistic heuristic.
+    # It must never overestimate the cost to get from the current state to the goal.
+    # The sum of the Manhattan distances between each box that has yet to be stored and the storage point nearest to it is such a heuristic.
+    # When calculating distances, assume there are no obstacles on the grid.
+    # You should implement this heuristic function exactly, even if it is tempting to improve it.
+    # Your function should return a numeric value; this is the estimate of the distance to the goal.
+
     '''Zero Heuristic can be used to make A* search perform uniform cost search'''
     return 0
 
@@ -222,17 +275,11 @@ def heur_manhattan_distance(state):
     '''INPUT: a sokoban state'''
     '''OUTPUT: a numeric value that serves as an estimate of the distance of the state to the goal.'''
     manhattan_dist = 0
+    #Iterate through all boxes, and find the minimum Manhattan distance between each box and the closes storage stace
     for i in state.boxes:
         dist = min(abs(i[0]-j[0]) + abs(i[1]-j[1]) for j in state.storage)
-        manhattan_dist += dist
+        manhattan_dist += dist #Sum all distances for all boxes
     return manhattan_dist
-    # We want an admissible heuristic, which is an optimistic heuristic.
-    # It must never overestimate the cost to get from the current state to the goal.
-    # The sum of the Manhattan distances between each box that has yet to be stored and the storage point nearest to it is such a heuristic.
-    # When calculating distances, assume there are no obstacles on the grid.
-    # You should implement this heuristic function exactly, even if it is tempting to improve it.
-    # Your function should return a numeric value; this is the estimate of the distance to the goal.
-
 
 
 def fval_function(sN, weight):
@@ -245,7 +292,8 @@ def fval_function(sN, weight):
     @param float weight: Weight given by Anytime Weighted A star
     @rtype: float
     """
-    fval = sN.gval + weight*sN.hval
+    #fval function is g(n) + weight * h(n)
+    fval = sN.gval + weight*sN.hval         
     return fval
 
 # SEARCH ALGORITHMS
@@ -255,9 +303,9 @@ def weighted_astar(initial_state, heur_fn, weight, timebound):
     '''INPUT: a sokoban state that represents the start state and a timebound (number of seconds)'''
     '''OUTPUT: A goal state (if a goal is found), else False as well as a SearchStats object'''
     '''implementation of weighted astar algorithm'''
-    search_engine = SearchEngine(strategy='custom',cc_level='full')
-    wrapped_fval_function = (lambda sN: fval_function(sN, weight))
-    search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function)
+    search_engine = SearchEngine(strategy='custom',cc_level='full') #Initialize search engine
+    wrapped_fval_function = (lambda sN: fval_function(sN, weight))  #Create the wrapped fval function as specified in Section 6.0
+    search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function) #Pass the wrapped 
     goal_found, stats = search_engine.search(timebound=timebound)
 
     return goal_found, stats  
@@ -273,21 +321,26 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
     search_engine = SearchEngine(strategy = 'custom', cc_level = 'full')
     wrapped_fval_function = (lambda sN: fval_function(sN, weight))
     search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function)
-    costbound = (100000000,100000000,100000000)
-    start_time = os.times()[0]
-    best = None
-    best_stats = None
-
+    #Inialize costbound (g(n), h(n), f(n)) with some arbitariliy high numbers, as defined in section 3.0
+    costbound = (100000000,100000000,100000000) 
+    start_time = os.times()[0]  #intialize start time
+    best = None #initalize best solution (none so far)
+    best_stats = None #initalize best stats (none so far)
+    #Run iterative astar for as long as we have time and as long as the weight is greater than 1
     while timebound > os.times()[0] - start_time and weight >= 1:
-        goal_found, stats = search_engine.search(timebound = timebound, costbound=costbound)
+        goal_found, stats = search_engine.search(timebound = timebound, costbound=costbound)    #Search for solution 
+        #if the gval found is found and is better than our current gval, we want to set the costbounds g(n), h(n), and f(n) values to the found solution
         if goal_found and goal_found.gval < costbound[0]:
+            #Update costbound to new values
             costbound = (goal_found.gval, heur_fn(goal_found), goal_found.gval + weight*heur_fn(goal_found))
-            best = goal_found
-            best_stats = stats
+            best = goal_found #Update best solution
+            best_stats = stats #Update best solution stats
     
+    #If we done find a soluiton in time
     if best == None:
         return False, None
     
+    #Otherwise, return the solution
     else:
         return best, best_stats
     
@@ -298,23 +351,31 @@ def iterative_gbfs(initial_state, heur_fn, timebound=5):  # only use h(n)
     '''INPUT: a sokoban state that represents the start state and a timebound (number of seconds)'''
     '''OUTPUT: A goal state (if a goal is found), else False'''
     '''implementation of iterative gbfs algorithm'''
-    greedy_search_engine = SearchEngine(strategy = 'best_first' )
-    greedy_search_engine.init_search(initial_state,sokoban_goal_state,heur_fn)
-    costbound = (100000000, 100000000, 100000000)
-    start_time = os.times()[0]
-    best = None
-    best_stats = None
+    greedy_search_engine = SearchEngine(strategy = 'best_first') #strategy set to best first, meaning only h(n) - heuristic value is used
+    greedy_search_engine.init_search(initial_state,sokoban_goal_state,heur_fn) #inialize search
+    #Inialize costbound (g(n), h(n), f(n)) with some arbitariliy high numbers, as defined in section 3.0
+    costbound = (100000000, 100000000, 100000000) 
+    start_time = os.times()[0] #intialize start time
+    best = None #initalize best solution (none so far)
+    best_stats = None #initalize best stats (none so far)
 
+    #while we still have time to do our search
     while timebound > os.times()[0] - start_time:
-        goal_found, stats = greedy_search_engine.search(timebound=timebound, costbound=costbound)
+        
+        goal_found, stats = greedy_search_engine.search(timebound=timebound, costbound=costbound) #search
+        #if we find a goal and the goal has a better gval than our best solution
         if goal_found and goal_found.gval < costbound[0]:
-            costbound = (goal_found.gval, costbound[1], costbound[2])
+            costbound = (goal_found.gval, heur_fn(goal_found), goal_found.gval+heur_fn(goal_found))   #update the gval (only the gval is important here)
+
+            #update best solution and stats to the new best solution
             best = goal_found
             best_stats = stats
-            
+
+    #If we done find a soluiton in time       
     if best == None:
         return False, None
     
+    #Otherwise, return the solution
     else:
         return best, best_stats
 

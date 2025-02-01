@@ -12,7 +12,7 @@ test_manhattan = False
 test_fval_function = False
 test_iterative_gbfs = True
 test_alternate = True
-test_iterative_astar = False
+test_iterative_astar = True
 test_weighted_astar = False
 
 def test_time_astar_fun():
