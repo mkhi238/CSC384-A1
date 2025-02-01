@@ -36,8 +36,9 @@ def heur_alternate(state):
     we made before)
 
     Finally, my function adds in the distance to move the robot to the box, such that although the idea is to greedily select the closest box, boxes too far away will be discouraged. 
-    Further, I found that adding a penaly score to a move which creates a congested area (meaning another box is within 1 unit above or below the box) helped a lot in ensuring that 
-    strong moves were made. Both these penalites were added directly to total cost. 
+
+    I believe my heuristic to be admissable since there is never a point where I am overestimating the cost of the solution such that it would be greater than the optimal cost. 
+    Every check only checks for infeasibly states and adds in distances to a goal state, and doesnt include anything else. 
     '''
 
     #1. SETTING PARAMETERS
@@ -66,7 +67,7 @@ def heur_alternate(state):
     for i in state.boxes:
         if i not in state.storage and obs_stuck(i, wallset, obstacles) == True:
             return 1000000000    #if stuck (dead state), impossible to solve
-
+        
     #3. CALCULATING MANHATTAN DISTANCE
     for box in state.boxes:
         min_distance = 1000000000    #Set the minimum distance to large number
@@ -205,32 +206,10 @@ def corner_detection(box, wall_set, width, height):
     #Return true if any of these is the case, otherwise false
     return top_left_corner or top_right_corner or bottom_left_corner or bottom_right_corner
 
-#PENALTIES:
-# 1. I apply a penalty to discourage states where boxes are clustered together, which I found was helpful in escaping these states quickly
-# 2. I also add in the cost of moving the robot from its state to the box it is greedily required to go to; even thought we are greedily selecting by the box to goal state 
+
+#PENALTY:
+# 1. I add in the cost of moving the robot from its state to the box it is greedily required to go to; even thought we are greedily selecting by the box to goal state 
 #    distance, I found that adding in this distance was helpful in reaching better states as well
-
-#BOX CLUSTERING PENALTY CALCULATION
-def avoid_box_clustering_penalty(boxes, storage):
-    #Create a list of unplaced boxes
-    unplaced_boxes = []
-    for box in boxes:
-        if box not in storage:
-            unplaced_boxes.append(box)
-
-    #If there is no unplaced boxes for whatever reason
-    if len(unplaced_boxes) == 0:
-        return 0
-    
-    penalty = 0
-    #Iterate through the unplaced boxes
-    for i in unplaced_boxes:
-        for j in unplaced_boxes:
-            if j != i:
-                if abs(i[0] - j[0]) <= 1 and abs(i[1] - j[1]) <= 1: #if the boxes are within 1 unit up or down from each other (I experimented with different values [1,2,5] and found 1 to be best)
-                    penalty += 0.5  #I experimented with different penalty values as well [0.25, 0.5, 0.75, 1, 2, 1000000000], and found the penalty of 0.5 to be the best
-    return penalty
-
 
 #FUNCTION TO FIND ROBOT'S DISTANCE FROM BOX
 def distance_from_robot_to_box(state):
@@ -320,7 +299,7 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
     search_engine = SearchEngine(strategy = 'custom', cc_level = 'full')
     #Inialize costbound (g(n), h(n), f(n)) with some arbitariliy high numbers, as defined in section 3.0
     costbound = (100000000,100000000,100000000) 
-    weight = 10
+    weight = 15
     start_time = os.times()[0]  #intialize start time
     best = None #initalize best solution (none so far)
     best_stats = None #initalize best stats (none so far)
@@ -336,7 +315,7 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
             best = goal_found #Update best solution
             best_stats = stats #Update best solution stats
         
-        weight = round(weight/1.5, 0)
+        weight = round(weight/1.75, 0)
     
     #If we done find a soluiton in time
     if best == None:
