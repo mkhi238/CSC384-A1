@@ -73,9 +73,11 @@ def heur_alternate(state):
     for box in state.boxes:
         min_distance = 1000000000    #Set the minimum distance to large number
         closest_goal = None         #Set closest goal to None
+        available_spots = available_storage_finder(box, state)
 
-        for goal in unassigned_goals:
+        for goal in available_spots:
             dist = abs(box[0] - goal[0]) + abs(box[1] - goal[1])    #Calculate Manhattan distance
+
 
             #Greedily assign boxes to the nearest goal state
             if dist < min_distance:                                 
@@ -84,14 +86,22 @@ def heur_alternate(state):
         
         #if a closest goal is found (i.e we are not in a dead or solution state)
         if closest_goal:
-            unassigned_goals.remove(closest_goal)  # Remove a goal state from the set of unassigned goals 
+            #unassigned_goals.remove(closest_goal)  # Remove a goal state from the set of unassigned goals 
             total_distance += min_distance         # Add the smallest distance to the total distance required to be moved
+        
 
     #4. UPDATE TOTAL DISTANCE WITH ROBOT DISTANCES
     total_distance += distance_from_robot_to_box(state)    #Find distance from the robot to the box and add to total distance (just updating the heuristic value, still greedily only accounting for box to goal distance in calculation)
     return total_distance 
 
-
+def available_storage_finder(box, state):
+    """Find available storage spots (not occupied by other boxes)"""
+    available = []
+    for spot in state.storage:
+        # Only count storage spots that aren't occupied by other boxes
+        if spot not in state.boxes or spot == box:
+            available.append(spot)
+    return available
 
 #FUNCTION TO ENUMERATE THE LOCATION OF ALL WALLS AND OBSTACLES
 def wall_set(width, height, obstacles):
@@ -128,6 +138,7 @@ def boxes_stuck(box, boxes, wall_set, storage):
     LB_walls_above = (x-1, y) in boxes and (x, y-1) in wall_set and (x-1, y-1) in wall_set
     LB_walls_below = (x-1, y) in boxes and (x, y+1) in wall_set and (x-1, y+1) in wall_set
 
+
     #RIGHT BOXES (RB); (x+1, y)
     #Right is (x+1, y), if there is a box to the right, cannot move to the right
 
@@ -148,8 +159,11 @@ def boxes_stuck(box, boxes, wall_set, storage):
     BB_walls_left = (x, y+1) in boxes and (x-1, y) in wall_set and (x-1, y+1) in wall_set
     BB_walls_right = (x, y+1) in boxes and (x+1, y) in wall_set and (x+1, y+1) in wall_set
 
+
     #Return true if any of these is the case, otherwise false
     return (LB_walls_above or LB_walls_below or RB_walls_above or RB_walls_below or TB_walls_left or TB_walls_right or BB_walls_left or BB_walls_right)
+
+
 
 #FUNCTION TO DETERMINE IF A BOXES IS CREATING A DEAD STATE WITH AN OBSTACLE
 def obs_stuck(box, wall_set, obstacles):
@@ -163,30 +177,59 @@ def obs_stuck(box, wall_set, obstacles):
 
     #Check if there are walls directly below or above this left obstacle; if so, we are in a dead state
     LO_walls_above = (x-1, y) in obstacles and (x, y-1) in wall_set and (x-1, y-1) in wall_set
+    LO_walls_above2 = (x-1, y) in obstacles and (x, y-1) in obstacles and (x-1, y-1) in wall_set
+    LO_walls_above3 = (x-1, y) in obstacles and (x, y-1) in obstacles and (x-1, y-1) in obstacles
     LO_walls_below = (x-1, y) in obstacles and (x, y+1) in wall_set and (x-1, y+1) in wall_set
+    LO_walls_below2 = (x-1, y) in obstacles and (x, y+1) in obstacles and (x-1, y+1) in wall_set
+    LO_walls_below3 = (x-1, y) in obstacles and (x, y+1) in obstacles and (x-1, y+1) in obstacles
 
     #RIGHT OBSTACLES (RO); (x+1, y)
     #Right is (x+1, y), if there is a obstacle to the right, cannot move to the right
 
     #Check if there are walls directly below or above this right obstacle; if so, we are in a dead state
     RO_walls_above = (x+1, y) in obstacles and (x, y-1) in wall_set and (x+1, y-1) in wall_set
+    RO_walls_above2 = (x+1, y) in obstacles and (x, y-1) in obstacles and (x+1, y-1) in wall_set
+    RO_walls_above3 = (x+1, y) in obstacles and (x, y-1) in obstacles and (x+1, y-1) in obstacles
     RO_walls_below = (x+1, y) in obstacles and (x, y+1) in wall_set and (x+1, y+1) in wall_set
+    RO_walls_below2 = (x+1, y) in obstacles and (x, y+1) in obstacles and (x+1, y+1) in wall_set
+    RO_walls_below3 = (x+1, y) in obstacles and (x, y+1) in obstacles and (x+1, y+1) in obstacles
 
     #TOP OBSTACLES (TO); (x, y-1)
     #Top is (x, y-1), if there is a obstacle to the top, cannot move to the top
 
     #Check if there is wall to the left or right of this top obstacle, if so we are in a dead state
     TO_walls_left = (x, y-1) in obstacles and (x-1, y) in wall_set and (x-1, y-1) in wall_set
+    TO_walls_left2 = (x, y-1) in obstacles and (x-1, y) in obstacles and (x-1, y-1) in wall_set
+
     TO_walls_right = (x, y-1) in obstacles and (x+1, y) in wall_set and (x+1, y-1) in wall_set
+    TO_walls_right2 = (x, y-1) in obstacles and (x+1, y) in obstacles and (x+1, y-1) in wall_set
 
     #BOTTOM OBSTACLES (BO); (x, y+1)
     #Bottom is (x, y+1), if there is a box to the bottom, cannot move to the bottom
     #Check if there is wall to the left or right of this bottom obstacle, if so we are in a dead state
     BO_walls_left = (x, y+1) in obstacles and (x-1, y) in wall_set and (x-1, y+1) in wall_set
+    BO_walls_left2 = (x, y+1) in obstacles and (x-1, y) in obstacles and (x-1, y+1) in wall_set
     BO_walls_right = (x, y+1) in obstacles and (x+1, y) in wall_set and (x+1, y+1) in wall_set
+    BO_walls_right2 = (x, y+1) in obstacles and (x+1, y) in obstacles and (x+1, y+1) in wall_set
 
     #Return true if any of these is the case, otherwise false
-    return (LO_walls_above or LO_walls_below or RO_walls_above or RO_walls_below or TO_walls_left or TO_walls_right or BO_walls_left or BO_walls_right)
+    return (LO_walls_above or LO_walls_below or RO_walls_above or RO_walls_below or TO_walls_left or TO_walls_right or BO_walls_left or BO_walls_right,
+            LO_walls_above2 or LO_walls_below2 or RO_walls_above2 or RO_walls_below2 or TO_walls_left2 or TO_walls_right2 or BO_walls_left2 or BO_walls_right2)
+
+def get_minimal_detour(box, goal, obstacles, boxes):
+
+    detour_cost = 0
+    x1, y1 = box
+    x2, y2 = goal
+    
+    # Check if any obstacle is directly in the path
+    for x in range(min(x1, x2), max(x1, x2) + 1):
+        for y in range(min(y1, y2), max(y1, y2) + 1):
+            if (x, y) in obstacles or ((x, y) in boxes and (x, y) != box):
+                # If obstacle is in direct path, must take at least 1 step detour
+                detour_cost = 1
+                break
+    return detour_cost
 
 #FUNCTION TO DETECT IF A BOX IS NEAR A CORNER (CREATED BY WALLS)
 def corner_detection(box, wall_set, width, height):
@@ -236,7 +279,6 @@ def distance_from_robot_to_box(state):
             if dist < min_dist:
                 min_dist = dist
     return min_dist
-
 
 def heur_zero(state):
     # We want an admissible heuristic, which is an optimistic heuristic.
