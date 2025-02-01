@@ -283,8 +283,8 @@ def weighted_astar(initial_state, heur_fn, weight, timebound):
     '''implementation of weighted astar algorithm'''
     search_engine = SearchEngine(strategy='custom',cc_level='full') #Initialize search engine
     wrapped_fval_function = (lambda sN: fval_function(sN, weight))  #Create the wrapped fval function as specified in Section 6.0
-    search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function) #Pass the wrapped 
-    goal_found, stats = search_engine.search(timebound=timebound)
+    search_engine.init_search(initial_state, sokoban_goal_state, heur_fn, wrapped_fval_function) #Pass the wrapped  function as the f_val
+    goal_found, stats = search_engine.search(timebound=timebound) #search
 
     return goal_found, stats  
 
@@ -314,8 +314,11 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
             costbound = (goal_found.gval, heur_fn(goal_found), goal_found.gval + weight*heur_fn(goal_found))
             best = goal_found #Update best solution
             best_stats = stats #Update best solution stats
+            remaining_time = timebound - (os.times()[0] - start_time)
+            weight *= 0.7  # Reduce weight slower
         
-        weight = round(weight/1.75, 0)
+        else:
+            weight *= 0.5  # Reduce weight aggressively
     
     #If we done find a soluiton in time
     if best == None:
