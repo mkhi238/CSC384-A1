@@ -100,12 +100,12 @@ def box_blocking_goal(box, goal, boxes, obstacles):
     x2, y2 = goal
 
     if y1 == y2:
-        for x in range(min(x1, x2) + 1, max(x1, x2)-1):  
+        for x in range(min(x1, x2) + 1, max(x1, x2)):  
             if (x, y1) in boxes:
                 return True
 
     elif x1 == x2:
-        for y in range(min(y1, y2) + 1, max(y1, y2)-1):  
+        for y in range(min(y1, y2) + 1, max(y1, y2)):  
             if (x1, y) in boxes:
                 return True
             
