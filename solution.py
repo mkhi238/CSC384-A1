@@ -53,6 +53,8 @@ def heur_alternate(state):
     boxes = state.boxes             #location of boxes on board
     unassigned_boxes = set()                    #empty set of unassigned boxes (no boxes assumed to be assigned)
     unassigned_goals = set(state.storage)      #Same idea, assume no goal has been assinged
+
+    #check if boxes or goals are already in their proper spot
     for i in boxes:
         if i in unassigned_goals:
                 unassigned_goals.remove(i)
@@ -86,7 +88,7 @@ def heur_alternate(state):
     #3. CALCULATING MANHATTAN DISTANCE
     for i in unassigned_boxes:
         min_distance = 1000000000    #Set the minimum distance to large number
-        closest_goal = -1000000000  
+        closest_goal = -1000000000   #Initialzie closest goal
 
         # See if there are even any remaining goals
         if len(unassigned_goals) == 0:
@@ -104,8 +106,7 @@ def heur_alternate(state):
                 min_distance = dist
                 closest_goal = goal     
         
-        #if a closest goal is found (i.e we are not in a dead or solution state)
-        # Only add distance and remove goal if we found one, otherwise we skip
+        #if a closest goal is found (i.e we are not in a dead or solution state). Only add distance and remove goal if we found one, otherwise we skip
         if closest_goal != -1000000000:
             unassigned_goals.remove(closest_goal)  # Remove the assigned goal only if it's in the set
             total_distance += min_distance         # Add the smallest distance to the total distance required to be moved
