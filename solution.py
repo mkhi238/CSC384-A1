@@ -51,12 +51,15 @@ def heur_alternate(state):
     storage = state.storage
     total_distance = 0              #total distance of box to goal
     boxes = state.boxes             #location of boxes on board
-    unassigned_goals = set(state.storage)   #list of all goals that are unassigned (all goals initally)
-
-    #Remove boxes already in goal states
+    unassigned_boxes = set()                    #empty set of unassigned boxes (no boxes assumed to be assigned)
+    unassigned_goals = set(state.storage)      #Same idea, assume no goal has been assinged
     for i in boxes:
         if i in unassigned_goals:
-            unassigned_goals.remove(i)
+                unassigned_goals.remove(i)
+    for j in boxes:
+        if j not in storage:
+            unassigned_boxes.add(j)
+
 
 
     #Check if all boxes are already in the goal state
@@ -65,31 +68,35 @@ def heur_alternate(state):
 
     #2. CHECKING FOR DEAD STATES
     #First check if a box will be stuck in a corner by walls and NOT in Storage
-    for i in state.boxes:
-        if i not in state.storage and corner_detection(i, wallset, width, height) == True:
+    for i in boxes:
+        if i not in storage and corner_detection(i, wallset, width, height) == True:
                 return 1000000000 #if stuck (dead state), impossible to solve
     
     #Second check if a box will be stuck in a corner by another box and NOT in Storage
-    for i in state.boxes:
-        if i not in state.storage and boxes_stuck(i, boxes, wallset, storage) == True:
+    for i in boxes:
+        if i not in storage and boxes_stuck(i, boxes, wallset, storage) == True:
             return 1000000000     #if stuck (dead state), impossible to solve
     
     #Third check if a box will be stuck in a corner by an obstacle and NOT in Storage
-    for i in state.boxes:
-        if i not in state.storage and obs_stuck(i, wallset, obstacles) == True:
+    for i in boxes:
+        if i not in storage and obs_stuck(i, wallset, obstacles) == True:
             return 1000000000    #if stuck (dead state), impossible to solve
         
 
     #3. CALCULATING MANHATTAN DISTANCE
-    for box in state.boxes:
+    for i in unassigned_boxes:
         min_distance = 1000000000    #Set the minimum distance to large number
-        closest_goal = 0     
+        closest_goal = -1000000000  
+
+        # See if there are even any remaining goals
+        if len(unassigned_goals) == 0:
+            continue
 
         for goal in unassigned_goals:
-            dist = abs(box[0] - goal[0]) + abs(box[1] - goal[1])    #Calculate Manhattan distance
+            dist = abs(i[0] - goal[0]) + abs(i[1] - goal[1])    #Calculate Manhattan distance
 
             #Check if, for a given goal/box combination where the box and goal are in a straight line horizontally or vertically, check if there is a blocker in the way
-            if straight_line_distance_with_box_or_object(box, goal, boxes, obstacles) == True: #if there is a blocker, add 1 (I experimented with different values to add [0.5,1,2] and found 1 to be the best, along with it being a value that maintains admissability (we will be guarneteed to make at least 1 more move))
+            if straight_line_distance_with_box_or_object(i, goal, boxes, obstacles) == True: #if there is a blocker, add 1 (I experimented with different values to add [0.5,1,2] and found 1 to be the best, along with it being a value that maintains admissability (we will be guarneteed to make at least 1 more move))
                 dist += 1
 
             #Greedily assign boxes to the nearest goal state
@@ -98,9 +105,11 @@ def heur_alternate(state):
                 closest_goal = goal     
         
         #if a closest goal is found (i.e we are not in a dead or solution state)
-        unassigned_goals.remove(closest_goal)  # Remove the assigned goal only if it's in the set
+        # Only add distance and remove goal if we found one, otherwise we skip
+        if closest_goal != -1000000000:
+            unassigned_goals.remove(closest_goal)  # Remove the assigned goal only if it's in the set
+            total_distance += min_distance         # Add the smallest distance to the total distance required to be moved
 
-        total_distance += min_distance         # Add the smallest distance to the total distance required to be moved
         
 
     #4. UPDATE TOTAL DISTANCE WITH ROBOT DISTANCES
