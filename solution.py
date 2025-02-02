@@ -77,9 +77,6 @@ def heur_alternate(state):
         for goal in unassigned_goals:
             dist = abs(box[0] - goal[0]) + abs(box[1] - goal[1])    #Calculate Manhattan distance
 
-            if box_blocking_goal(box, goal, boxes, obstacles):
-                dist += 1  
-
             #Greedily assign boxes to the nearest goal state
             if dist < min_distance:                                 
                 min_distance = dist
@@ -101,13 +98,12 @@ def box_blocking_goal(box, goal, boxes, obstacles):
 
     if y1 == y2:
         for x in range(min(x1, x2) + 1, max(x1, x2)):  # Exclude box and goal
-            if (x, y1) in boxes or (x,y1) in obstacles:
+            if (x, y1) in boxes:
                 return True
 
-    # Check vertical block (Same column, different rows)
     if x1 == x2:
         for y in range(min(y1, y2) + 1, max(y1, y2)):  # Exclude box and goal
-            if (x1, y) in boxes or (x1, y) in obstacles:
+            if (x1, y) in boxes:
                 return True
 
     return False  # No blocking box found
@@ -189,10 +185,10 @@ def obs_stuck(box, wall_set, obstacles):
     #Check if there are walls directly below or above this left obstacle; if so, we are in a dead state
     LO_walls_above = (x-1, y) in obstacles and (x, y-1) in wall_set and (x-1, y-1) in wall_set
     LO_walls_above2 = (x-1, y) in obstacles and (x, y-1) in obstacles and (x-1, y-1) in wall_set
-    LO_walls_above3 = (x-1, y) in obstacles and (x, y-1) in obstacles and (x-1, y-1) in obstacles
+    #LO_walls_above3 = (x-1, y) in obstacles and (x, y-1) in obstacles and (x-1, y-1) in obstacles
     LO_walls_below = (x-1, y) in obstacles and (x, y+1) in wall_set and (x-1, y+1) in wall_set
     LO_walls_below2 = (x-1, y) in obstacles and (x, y+1) in obstacles and (x-1, y+1) in wall_set
-    LO_walls_below3 = (x-1, y) in obstacles and (x, y+1) in obstacles and (x-1, y+1) in obstacles
+    #LO_walls_below3 = (x-1, y) in obstacles and (x, y+1) in obstacles and (x-1, y+1) in obstacles
 
     #RIGHT OBSTACLES (RO); (x+1, y)
     #Right is (x+1, y), if there is a obstacle to the right, cannot move to the right
@@ -200,10 +196,10 @@ def obs_stuck(box, wall_set, obstacles):
     #Check if there are walls directly below or above this right obstacle; if so, we are in a dead state
     RO_walls_above = (x+1, y) in obstacles and (x, y-1) in wall_set and (x+1, y-1) in wall_set
     RO_walls_above2 = (x+1, y) in obstacles and (x, y-1) in obstacles and (x+1, y-1) in wall_set
-    RO_walls_above3 = (x+1, y) in obstacles and (x, y-1) in obstacles and (x+1, y-1) in obstacles
+    #RO_walls_above3 = (x+1, y) in obstacles and (x, y-1) in obstacles and (x+1, y-1) in obstacles
     RO_walls_below = (x+1, y) in obstacles and (x, y+1) in wall_set and (x+1, y+1) in wall_set
     RO_walls_below2 = (x+1, y) in obstacles and (x, y+1) in obstacles and (x+1, y+1) in wall_set
-    RO_walls_below3 = (x+1, y) in obstacles and (x, y+1) in obstacles and (x+1, y+1) in obstacles
+    #RO_walls_below3 = (x+1, y) in obstacles and (x, y+1) in obstacles and (x+1, y+1) in obstacles
 
     #TOP OBSTACLES (TO); (x, y-1)
     #Top is (x, y-1), if there is a obstacle to the top, cannot move to the top
@@ -211,25 +207,25 @@ def obs_stuck(box, wall_set, obstacles):
     #Check if there is wall to the left or right of this top obstacle, if so we are in a dead state
     TO_walls_left = (x, y-1) in obstacles and (x-1, y) in wall_set and (x-1, y-1) in wall_set
     TO_walls_left2 = (x, y-1) in obstacles and (x-1, y) in obstacles and (x-1, y-1) in wall_set
-    TO_walls_left3 = (x, y-1) in obstacles and (x-1, y) in obstacles and (x-1, y-1) in obstacles
+    #TO_walls_left3 = (x, y-1) in obstacles and (x-1, y) in obstacles and (x-1, y-1) in obstacles
     TO_walls_right = (x, y-1) in obstacles and (x+1, y) in wall_set and (x+1, y-1) in wall_set
     TO_walls_right2 = (x, y-1) in obstacles and (x+1, y) in obstacles and (x+1, y-1) in wall_set
-    TO_walls_right3 = (x, y-1) in obstacles and (x+1, y) in obstacles and (x+1, y-1) in obstacles
+    #TO_walls_right3 = (x, y-1) in obstacles and (x+1, y) in obstacles and (x+1, y-1) in obstacles
 
     #BOTTOM OBSTACLES (BO); (x, y+1)
     #Bottom is (x, y+1), if there is a box to the bottom, cannot move to the bottom
     #Check if there is wall to the left or right of this bottom obstacle, if so we are in a dead state
     BO_walls_left = (x, y+1) in obstacles and (x-1, y) in wall_set and (x-1, y+1) in wall_set
     BO_walls_left2 = (x, y+1) in obstacles and (x-1, y) in obstacles and (x-1, y+1) in wall_set
-    BO_walls_left3 = (x, y+1) in obstacles and (x-1, y) in obstacles and (x-1, y+1) in obstacles
+    #BO_walls_left3 = (x, y+1) in obstacles and (x-1, y) in obstacles and (x-1, y+1) in obstacles
     BO_walls_right = (x, y+1) in obstacles and (x+1, y) in wall_set and (x+1, y+1) in wall_set
     BO_walls_right2 = (x, y+1) in obstacles and (x+1, y) in obstacles and (x+1, y+1) in wall_set
-    BO_walls_right3 = (x, y+1) in obstacles and (x+1, y) in obstacles and (x+1, y+1) in obstacles
+    #BO_walls_right3 = (x, y+1) in obstacles and (x+1, y) in obstacles and (x+1, y+1) in obstacles
 
     #Return true if any of these is the case, otherwise false
     return (LO_walls_above or LO_walls_below or RO_walls_above or RO_walls_below or TO_walls_left or TO_walls_right or BO_walls_left or BO_walls_right,
-            LO_walls_above2 or LO_walls_below2 or RO_walls_above2 or RO_walls_below2 or TO_walls_left2 or TO_walls_right2 or BO_walls_left2 or BO_walls_right2,
-            LO_walls_above3 or LO_walls_below3 or RO_walls_above3 or RO_walls_below3 or TO_walls_left3 or TO_walls_right3 or BO_walls_left3 or BO_walls_right3)
+            LO_walls_above2 or LO_walls_below2 or RO_walls_above2 or RO_walls_below2 or TO_walls_left2 or TO_walls_right2 or BO_walls_left2 or BO_walls_right2)
+            #LO_walls_above3 or LO_walls_below3 or RO_walls_above3 or RO_walls_below3 or TO_walls_left3 or TO_walls_right3 or BO_walls_left3 or BO_walls_right3)
 
 def get_minimal_detour(box, goal, obstacles, boxes):
 
