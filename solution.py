@@ -53,6 +53,15 @@ def heur_alternate(state):
     boxes = state.boxes             #location of boxes on board
     unassigned_goals = set(state.storage)   #list of all goals that are unassigned (all goals initally)
 
+    #Remove boxes already in goal states
+    for i in boxes:
+        if i in unassigned_goals:
+            unassigned_goals.remove(i)
+
+
+    #Check if all boxes are already in the goal state
+    if len(unassigned_goals) == 0:  
+        return 0
 
     #2. CHECKING FOR DEAD STATES
     #First check if a box will be stuck in a corner by walls and NOT in Storage
@@ -279,8 +288,12 @@ def straight_line_distance_with_box_or_object(box, goal, boxes, obstacles):
     ybox = box[1]
     xgoal = goal[0]
     ygoal = goal[1]
-
     in_the_way = False
+
+    #if box is actually already in solution space, return False
+    if xbox == xgoal and ybox == ygoal:
+        return in_the_way
+
     #if the box and goal is on the same y parallel
     if ybox == ygoal:
         #look forward from the goal or box (whichever is smaller) to the space before the goal (i did this to make it more robust, and found through experimentation
