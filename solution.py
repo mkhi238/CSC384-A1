@@ -72,16 +72,16 @@ def heur_alternate(state):
         
 
     #3. CALCULATING MANHATTAN DISTANCE
-    for b in boxes:
+    for box in state.boxes:
         min_distance = 1000000000    #Set the minimum distance to large number
         closest_goal = 0     
 
         for goal in unassigned_goals:
-            dist = abs(b[0] - goal[0]) + abs(b[1] - goal[1])    #Calculate Manhattan distance
+            dist = abs(box[0] - goal[0]) + abs(box[1] - goal[1])    #Calculate Manhattan distance
 
             #Check if, for a given goal/box combination where the box and goal are in a straight line horizontally or vertically, check if there is a blocker in the way
-            if object_or_box_in_the_way(b, goal, boxes, obstacles) == True:
-                dist += 1 #if there is a blocker, add 1 (I experimented with different values to add [0.5,1,2] and found 1 to be the best, along with it being a value that maintains admissability (we will be guarneteed to make at least 1 more move))
+            if straight_line_distance_with_box_or_object(box, goal, boxes, obstacles) == True: #if there is a blocker, add 1 (I experimented with different values to add [0.5,1,2] and found 1 to be the best, along with it being a value that maintains admissability (we will be guarneteed to make at least 1 more move))
+                dist += 1
 
             #Greedily assign boxes to the nearest goal state
             if dist < min_distance:                                 
@@ -97,7 +97,6 @@ def heur_alternate(state):
     #4. UPDATE TOTAL DISTANCE WITH ROBOT DISTANCES
     total_distance += distance_from_robot_to_box(state) #Find distance from the robot to the box and add to total distance (just updating the heuristic value, still greedily only accounting for box to goal distance in calculation)
     return total_distance 
-
 
 #FUNCTION TO ENUMERATE THE LOCATION OF ALL WALLS AND OBSTACLES
 def wall_set(width, height, obstacles):
@@ -152,6 +151,7 @@ def boxes_stuck(box, boxes, wall_set, storage):
 
     #BOTTOM BOXES (BB); (x, y+1)
     #Bottom is (x, y+1), if there is a box to the bottom, cannot move to the bottom
+
     #Check if there is wall to the left or right of this bottom box, if so we are in a dead state
     BB_walls_left = (x, y+1) in boxes and (x-1, y) in wall_set and (x-1, y+1) in wall_set
     BB_walls_right = (x, y+1) in boxes and (x+1, y) in wall_set and (x+1, y+1) in wall_set
@@ -239,9 +239,10 @@ def corner_detection(box, wall_set, width, height):
     return top_left_corner or top_right_corner or bottom_left_corner or bottom_right_corner
 
 
-#PENALTY:
+#PENALTIES:
 # 1. I add in the cost of moving the robot from its state to the box it is greedily required to go to; even thought we are greedily selecting by the box to goal state 
 #    distance, I found that adding in this distance was helpful in reaching better states as well
+# 2. Straight line penalty, explained above
 
 #FUNCTION TO FIND ROBOT'S DISTANCE FROM BOX
 def distance_from_robot_to_box(state):
@@ -251,6 +252,10 @@ def distance_from_robot_to_box(state):
     for box in state.boxes:
         if box not in state.storage:
             unplaced_boxes.append(box)
+
+    #If there is no unplaced boxes for whatever reason
+    if len(unplaced_boxes) == 0:
+        return 0
     
     #Iterate through robots, find the robot with the minimum distance and add it to the calculation
     min_dist = 1000000000
@@ -268,30 +273,31 @@ def distance_from_robot_to_box(state):
 # If so, we know that we need to adds at least plus one. Becaue of this fact, adding +1 to our total distance still maintains admissablility
 # This is because any which way, if there is something that is in the way, then we are going to have to make at least one extra move to make a detour
 # As you can see in the function itself, this only works if the goal and the box are on the same parallel (x or y) - otherwise, we cannot determine anything (admissably)
-def object_or_box_in_the_way(box, goal, boxes, obstacles):
+def straight_line_distance_with_box_or_object(box, goal, boxes, obstacles):
     #Get the location of the box and the goal
     xbox = box[0]
     ybox = box[1]
     xgoal = goal[0]
     ygoal = goal[1]
-    in_the_way = False
 
+    in_the_way = False
     #if the box and goal is on the same y parallel
     if ybox == ygoal:
         #look forward from the goal or box (whichever is smaller) to the space before the goal (i did this to make it more robust, and found through experimentation
         #of different ranges that this worked the best)
-        for i in range(min(xbox, xgoal) + 1, max(xbox, xgoal)-1):  
-            if (i, ybox) in boxes or (i,ybox) in obstacles: #if there are obstacles or boxes in the way, return True (we will need to make an extra step)
-                return in_the_way == True
-            
-    #if the box and goal is on the same x parallel
+        for i in range(min(xbox, xgoal) + 1, max(xbox, xgoal)-1): #if there are obstacles or boxes in the way, return True (we will need to make an extra step)
+            if (i, ybox) in boxes or (i,ybox) in obstacles:
+                in_the_way = True
+                return in_the_way
+
     elif xbox == xgoal:
         #look forward from the goal or box (whichever is smaller) to the space before the goal (i did this to make it more robust, and found through experimentation
         #of different ranges that this worked the best)
-        for j in range(min(ybox, ygoal) + 1, max(ybox, ygoal)-1):  
-            if (xbox, j) in boxes or (xbox,j) in obstacles: #if there are obstacles or boxes in the way, return True (we will need to make an extra step)
-                return in_the_way == True
-    
+        for y in range(min(ybox, ygoal) + 1, max(ybox, ygoal)-1):  
+            if (xbox, y) in boxes or (xbox,y) in obstacles: #if there are obstacles or boxes in the way, return True (we will need to make an extra step)
+                in_the_way = True
+                return True
+            
     #if not, return False (will not need to add +1)
     return in_the_way 
 
@@ -359,7 +365,7 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
     search_engine = SearchEngine(strategy = 'custom', cc_level = 'full')
     #Inialize costbound (g(n), h(n), f(n)) with some arbitariliy high numbers, as defined in section 3.0
     costbound = (100000000,100000000,100000000) 
-    weight = 15 #initalize weight to something high
+    weight = 15
     start_time = os.times()[0]  #intialize start time
     best = None #initalize best solution (none so far)
     best_stats = None #initalize best stats (none so far)
@@ -375,10 +381,10 @@ def iterative_astar(initial_state, heur_fn, weight=1, timebound=5):  # uses f(n)
             best = goal_found #Update best solution
             best_stats = stats #Update best solution stats
             remaining_time = timebound - (os.times()[0] - start_time)
-            weight *= 0.7  # Reduce weight slower if we find a solution
+            weight *= 0.7  # Reduce weight slower
         
         else:
-            weight *= 0.5  # Reduce weight aggressively if we dont find a solution
+            weight *= 0.5  # Reduce weight aggressively
     
     #If we done find a soluiton in time
     if best == None:
